@@ -16,7 +16,7 @@
 .type keyexpansion,@function
 keyexpansion:
 #	add		$16, %rsi
-#	vpshufd	%0xff, %xmm1, %xmm1
+#	vpshufd	$0xff, %xmm1, %xmm1
 
 	vmovdqa	%xmm0, %xmm3
 
@@ -27,7 +27,7 @@ keyexpansion:
 	vpshufb	%xmm4, %xmm3, %xmm3
 	vpxor	%xmm3, %xmm0, %xmm0
 
-	vpshufd	%0xff, %xmm1, %xmm1
+	vpshufd	$0xff, %xmm1, %xmm1
 	vpxor	%xmm1, %xmm0, %xmm0
 
 	add		$16, %rsi
@@ -90,22 +90,22 @@ expandkey128:
 .type aes_encrypt_asm,@function
 aes_encrypt_asm:
 	vmovdqu		(%rdi), %xmm0		# Input variable parsing
-	vmovdq		(%rsi), %xmm1		#
-	movl		%edx, %ecx			#
+	vmovdqu		(%rsi), %xmm1		#
+	mov			%edx, %ecx			#
 
 	vpxor		%xmm1, %xmm0, %xmm0	# Addroundkey, literally turn data to
 	add			$16, %rsi			# 4x4 grids, xor grids
 									# Done here b/c first part of round
 									# is the plain key
 
-	dec		$1, %ecx			# Sub 1 because last round is special
+	dec			%ecx			# Sub 1 because last round is special
 
 aes_round_enc:
 	vmovdqu		(%rsi), %xmm1				# Get next part of round key
 	vaesenc		%xmm1, %xmm0, %xmm0			# Encrypt using that part
 	add			$16, %rsi
 	dec			%ecx
-	jne			aes_round_enc:
+	jne			aes_round_enc
 
 enc_last_round:
 	vmovdqu		(%rsi), %xmm1
@@ -126,13 +126,13 @@ enc_last_round:
 aes_decrypt_asm:
 	vmovdqu		(%rdi),%xmm0
 
-	movl		%edx, %ecx			# Create iterator
-	imull		$16, %edx, %edx		#
-	addl		%rdx, %rsi			# Start at last round key part, not first
+	mov			%edx, %ecx			# Create iterator
+	imul		$16, %edx, %edx		#
+	add			%rdx, %rsi			# Start at last round key part, not first
 	vmovdqu		(%rsi), %xmm1
 	pxor		%xmm1, %xmm0		# Why pxor and not vpxor?
 
-	subl		$16, %rsi
+	sub			$16, %rsi
 	dec			%ecx
 
 aes_round_dec:
@@ -141,7 +141,7 @@ aes_round_dec:
 									# Done on all but first and last round
 									# keys before decryption step
 	vaesdec		%xmm1, %xmm0, %xmm0
-	subl		$16, %rsi
+	sub			$16, %rsi
 	dec			%ecx
 	jne			aes_round_dec
 
