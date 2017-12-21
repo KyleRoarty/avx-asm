@@ -82,7 +82,8 @@ expandkey128:
 /* In:
 /*		rdi; pointer to plaintext data
 /*		rsi; pointer to expanded round key
-/*		rdx/edx; Number of rounds of encryption to do
+/*		rdx; memory address to store result
+/*		rcx/ecx; Number of rounds of encryption to do
 /* Out:
 /*		Null; Encrypted data stored in rdi/plaintext data location
 /*/
@@ -91,33 +92,33 @@ expandkey128:
 aes_encrypt_asm:
 	vmovdqu		(%rdi), %xmm0		# Input variable parsing
 	vmovdqu		(%rsi), %xmm1		#
-	mov			%edx, %ecx			#
 
 	vpxor		%xmm1, %xmm0, %xmm0	# Addroundkey, literally turn data to
 	add			$16, %rsi			# 4x4 grids, xor grids
 									# Done here b/c first part of round
 									# is the plain key
 
-	dec			%ecx			# Sub 1 because last round is special
+	dec			%rcx			# Sub 1 because last round is special
 
 aes_round_enc:
 	vmovdqu		(%rsi), %xmm1				# Get next part of round key
 	vaesenc		%xmm1, %xmm0, %xmm0			# Encrypt using that part
 	add			$16, %rsi
-	dec			%ecx
+	dec			%rcx
 	jne			aes_round_enc
 
 enc_last_round:
 	vmovdqu		(%rsi), %xmm1
 	vaesenclast %xmm1, %xmm0, %xmm0
-	vmovdqu		%xmm0, (%rdi)
+	vmovdqu		%xmm0, (%rdx)
 
 	ret
 
 /* In:
 /*		rdi; Pointer to encrypted data
 /*		rsi; Pointer to expanded round key
-/*		rdx/edx; Number of rounds of decryption
+/*		rdx; Place to store result
+/*		rcx/ecx; Number of rounds of decryption
 /* Out:
 /*		Null; Decrypted data stored in rdi/encrypted data location
 /*/
@@ -126,14 +127,14 @@ enc_last_round:
 aes_decrypt_asm:
 	vmovdqu		(%rdi),%xmm0
 
-	mov			%edx, %ecx			# Create iterator
-	imul		$16, %edx, %edx		#
-	add			%rdx, %rsi			# Start at last round key part, not first
+	mov			%rcx, %r11			# Create iterator
+	imul		$16, %rcx, %rcx		#
+	add			%rcx, %rsi			# Start at last round key part, not first
 	vmovdqu		(%rsi), %xmm1
 	vpxor		%xmm1, %xmm0, %xmm0
 
 	sub			$16, %rsi
-	dec			%ecx
+	dec			%r11
 
 aes_round_dec:
 	vmovdqu		(%rsi), %xmm1
@@ -142,12 +143,12 @@ aes_round_dec:
 									# keys before decryption step
 	vaesdec		%xmm1, %xmm0, %xmm0
 	sub			$16, %rsi
-	dec			%ecx
+	dec			%r11
 	jne			aes_round_dec
 
 dec_last_round:
 	vmovdqu		(%rsi), %xmm1
 	vaesdeclast	%xmm1, %xmm0, %xmm0
-	vmovdqu		%xmm0, (%rdi)
+	vmovdqu		%xmm0, (%rdx)
 
 	ret
