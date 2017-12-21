@@ -77,3 +77,77 @@ expandkey128:
 .L__mask:
 .quad 0x3020100ffffffff
 .quad 0xb0a090807060504
+
+
+/* In:
+/*		rdi; pointer to plaintext data
+/*		rsi; pointer to expanded round key
+/*		rdx/edx; Number of rounds of encryption to do
+/* Out:
+/*		Null; Encrypted data stored in rdi/plaintext data location
+/*/
+.global aes_encrypt_asm
+.type aes_encrypt_asm,@function
+aes_encrypt_asm:
+	vmovdqu		(%rdi), %xmm0		# Input variable parsing
+	vmovdq		(%rsi), %xmm1		#
+	movl		%edx, %ecx			#
+
+	vpxor		%xmm1, %xmm0, %xmm0	# Addroundkey, literally turn data to
+	add			$16, %rsi			# 4x4 grids, xor grids
+									# Done here b/c first part of round
+									# is the plain key
+
+	dec		$1, %ecx			# Sub 1 because last round is special
+
+aes_round_enc:
+	vmovdqu		(%rsi), %xmm1				# Get next part of round key
+	vaesenc		%xmm1, %xmm0, %xmm0			# Encrypt using that part
+	add			$16, %rsi
+	dec			%ecx
+	jne			aes_round_enc:
+
+enc_last_round:
+	vmovdqu		(%rsi), %xmm1
+	vaesenclast %xmm1, %xmm0, %xmm0
+	vmovdqu		%xmm0, (%rdi)
+
+	ret
+
+/* In:
+/*		rdi; Pointer to encrypted data
+/*		rsi; Pointer to expanded round key
+/*		rdx/edx; Number of rounds of decryption
+/* Out:
+/*		Null; Decrypted data stored in rdi/encrypted data location
+/*/
+.global aes_decrypt_asm
+.type aes_decrypt_asm,@function
+aes_decrypt_asm:
+	vmovdqu		(%rdi),%xmm0
+
+	movl		%edx, %ecx			# Create iterator
+	imull		$16, %edx, %edx		#
+	addl		%rdx, %rsi			# Start at last round key part, not first
+	vmovdqu		(%rsi), %xmm1
+	pxor		%xmm1, %xmm0		# Why pxor and not vpxor?
+
+	subl		$16, %rsi
+	dec			%ecx
+
+aes_round_dec:
+	vmovdqu		(%rsi), %xmm1
+	vaesimc		%xmm1, %xmm1		# InvMinColumn transformation
+									# Done on all but first and last round
+									# keys before decryption step
+	vaesdec		%xmm1, %xmm0, %xmm0
+	subl		$16, %rsi
+	dec			%ecx
+	jne			aes_round_dec
+
+dec_last_round:
+	vmovdqu		(%rsi), %xmm1
+	vaesdeclast	%xmm1, %xmm0, %xmm0
+	vmovdqu		%xmm0, (%rdi)
+
+	ret
