@@ -1,8 +1,8 @@
 #include <stdio.h>
 
 extern void expandkey128(unsigned char *, unsigned char *);
-extern void aes_encrypt_asm(unsigned char *, unsigned char *, int);
-extern void aes_decrypt_asm(unsigned char *, unsigned char *, int);
+extern void aes_encrypt_asm(unsigned char *, unsigned char *, unsigned char *, int);
+extern void aes_decrypt_asm(unsigned char *, unsigned char *, unsigned char *, int);
 
 // len = sizeof(char_str). Normalized inside of function
 void printCharStr(unsigned char *char_str, int len){
@@ -20,16 +20,17 @@ int main( ){
     unsigned char ptext[] = {0x00  ,0x11  ,0x22  ,0x33  ,0x44  ,0x55  ,0x66  ,0x77,
                              0x88  ,0x99  ,0xaa  ,0xbb  ,0xcc  ,0xdd  ,0xee  ,0xff};
     unsigned char RoundKey[240];
+    unsigned char res[16];
     int Nr = 10;
 
     printCharStr(key, sizeof(key));
     printCharStr(ptext, sizeof(ptext));
 
     expandkey128(key,RoundKey);
-    aes_encrypt_asm(ptext,RoundKey,Nr);
-    printCharStr(ptext, sizeof(ptext));
+    aes_encrypt_asm(ptext,RoundKey,res,Nr);
+    printCharStr(res, sizeof(res));
 
-    aes_decrypt_asm(ptext,RoundKey,Nr); // should get back the original text
+    aes_decrypt_asm(res,RoundKey,ptext,Nr); // should get back the original text
     printCharStr(ptext, sizeof(ptext));
 
 }
