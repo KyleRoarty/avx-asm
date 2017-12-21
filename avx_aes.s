@@ -130,7 +130,7 @@ aes_decrypt_asm:
 	imul		$16, %edx, %edx		#
 	add			%rdx, %rsi			# Start at last round key part, not first
 	vmovdqu		(%rsi), %xmm1
-	pxor		%xmm1, %xmm0		# Why pxor and not vpxor?
+	vpxor		%xmm1, %xmm0, %xmm0
 
 	sub			$16, %rsi
 	dec			%ecx
