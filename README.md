@@ -9,3 +9,4 @@ Use [other](https://support.amd.com/TechDocs/26568.pdf) [documentation](https://
 
 ### Other useful links
 [x64 registers (SSE, no AVX)](https://software.intel.com/sites/default/files/article/402129/mpx-linux64-abi.pdf), page 23.
+[Rijndael key schedule description](https://en.wikipedia.org/wiki/Rijndael_key_schedule#Key_schedule_description)
